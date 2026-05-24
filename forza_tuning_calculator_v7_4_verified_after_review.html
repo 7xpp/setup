@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Racing Setup Calculator V7.3 — Correct Min Bump</title>
+    <meta name="description" content="คำนวณเซ็ตอัพรถแข่งแบบมืออาชีพ สำหรับ Forza — Dampers, Springs, ARBs, Alignment, Aero และอื่นๆ">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --red: #ff2d2d;
+            --red-dark: #c0102a;
+            --red-glow: rgba(255, 45, 45, 0.35);
+            --orange: #ff6b2b;
+            --gold: #f5c842;
+            --bg: #0a0c10;
+            --bg2: #0f1218;
+            --surface: rgba(255,255,255,0.04);
+            --surface-hover: rgba(255,255,255,0.07);
+            --border: rgba(255,255,255,0.08);
+            --border-accent: rgba(255, 45, 45, 0.4);
+            --text: #e8eaf0;
+            --text-dim: #8892a4;
+            --text-muted: #565f70;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 40px 20px 80px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ─── Background ─── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 70% 50% at 15% 0%, rgba(255,45,45,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 85% 100%, rgba(255,107,43,0.08) 0%, transparent 55%),
+                radial-gradient(ellipse 80% 60% at 50% 50%, rgba(15,18,28,0.6) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrapper {
+            max-width: 860px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ─── Header ─── */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+            animation: fadeDown 0.7s ease both;
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(255,45,45,0.2), rgba(255,107,43,0.15));
+            border: 1px solid var(--border-accent);
+            border-radius: 100px;
+            padding: 6px 18px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--red);
+            margin-bottom: 20px;
+        }
+
+        .header-badge::before {
+            content: '';
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--red);
+            box-shadow: 0 0 8px var(--red);
+            animation: pulse 1.5s infinite;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(26px, 5vw, 46px);
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 30%, #ff6b6b 70%, var(--orange) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+        }
+
+        .header-sub {
+            font-size: 14px;
+            color: var(--text-dim);
+            font-weight: 400;
+            letter-spacing: 0.03em;
+        }
+
+        .header-sub span {
+            color: var(--red);
+            font-weight: 600;
+        }
+
+        /* ─── Card ─── */
+        .card {
+            background: rgba(14,17,24,0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--red), var(--orange), transparent);
+            opacity: 0.7;
+        }
+
+        .card-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ─── Grid ─── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-grid .full { grid-column: 1 / -1; }
+
+        /* ─── Form Group ─── */
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+
+        label .label-en {
+            font-weight: 400;
+            color: var(--text-muted);
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 13px 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--red);
+            background: rgba(255,45,45,0.06);
+            box-shadow: 0 0 0 3px rgba(255,45,45,0.12);
+        }
+
+        input:hover, select:hover {
+            border-color: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.06);
+        }
+
+        .select-wrap {
+            position: relative;
+        }
+
+        .select-wrap::after {
+            content: '▾';
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        select option {
+            background: #1a1e28;
+            color: var(--text);
+        }
+
+        /* ─── Button ─── */
+        .btn-calculate {
+            width: 100%;
+            padding: 18px 32px;
+            background: linear-gradient(135deg, var(--red) 0%, #e8192c 50%, var(--orange) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(255, 45, 45, 0.3), 0 0 0 0 rgba(255,45,45,0.2);
+        }
+
+        .btn-calculate::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-calculate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 45, 45, 0.45), 0 0 0 0 rgba(255,45,45,0.2);
+        }
+
+        .btn-calculate:hover::before { opacity: 1; }
+
+        .btn-calculate:active { transform: translateY(0); }
+
+        .btn-calculate .btn-icon { margin-right: 10px; font-size: 18px; }
+
+        /* ─── Results ─── */
+        #results {
+            display: none;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .results-header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--red);
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+
+        .results-header p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ─── Result Section ─── */
+        .result-section {
+            background: rgba(14,17,24,0.9);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.3s;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .result-section:hover {
+            border-color: rgba(255, 45, 45, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 24px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .result-num {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--red), var(--orange));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(255,45,45,0.3);
+        }
+
+        .result-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .result-title-en {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-left: 6px;
+        }
+
+        .result-body {
+            padding: 20px 24px;
+        }
+
+        .result-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 14px;
+        }
+
+        .result-row:last-child { border-bottom: none; }
+
+        .result-label {
+            color: var(--text-dim);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .result-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            text-align: right;
+        }
+
+        .result-value.red { color: var(--red); }
+
+        .result-item {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-dim);
+            padding: 6px 0;
+        }
+
+        .result-item strong { color: var(--text); font-weight: 600; }
+
+        .result-item .badge {
+            display: inline-block;
+            background: rgba(255,45,45,0.12);
+            border: 1px solid rgba(255,45,45,0.25);
+            color: var(--red);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 100px;
+            margin-left: 6px;
+        }
+
+        .note {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--gold);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .note::before { content: '💡'; font-style: normal; flex-shrink: 0; }
+
+        /* ─── Divider Grid for Dampers ─── */
+        .damper-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .damper-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+
+        .damper-card:hover { border-color: rgba(255,45,45,0.3); }
+
+        .damper-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .damper-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .damper-type {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ─── Tire Pressure Display ─── */
+        .tire-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 20px 0;
+        }
+
+        .tire-num {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 38px;
+            font-weight: 900;
+            color: var(--gold);
+        }
+
+        .tire-unit {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .tire-sep {
+            font-size: 28px;
+            color: var(--border);
+        }
+
+        /* ─── Animations ─── */
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Staggered result animations */
+        .result-section:nth-child(1) { animation-delay: 0.05s; }
+        .result-section:nth-child(2) { animation-delay: 0.10s; }
+        .result-section:nth-child(3) { animation-delay: 0.15s; }
+        .result-section:nth-child(4) { animation-delay: 0.20s; }
+        .result-section:nth-child(5) { animation-delay: 0.25s; }
+        .result-section:nth-child(6) { animation-delay: 0.30s; }
+        .result-section:nth-child(7) { animation-delay: 0.35s; }
+        .result-section:nth-child(8) { animation-delay: 0.40s; }
+        .result-section:nth-child(9) { animation-delay: 0.45s; }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 600px) {
+            body { padding: 20px 14px 60px; }
+            .card { padding: 22px 18px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .damper-grid { grid-template-columns: 1fr 1fr; }
+            h1 { font-size: 26px; }
+            .result-body { padding: 16px 18px; }
+            .result-header { padding: 14px 18px; }
+        }
+
+        /* ─── Scrollbar ─── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,45,45,0.4); border-radius: 99px; }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+    <!-- ─── Header ─── -->
+    <div class="header">
+        <div class="header-badge">Forza.guide Compliant</div>
+        <h1>Racing Tuning<br>Calculator V7.2</h1>
+        <p class="header-sub">คำนวณเซ็ตอัพแบบมืออาชีพ • <span>Ultimate Edition</span></p>
+    </div>
+
+    <!-- ─── Input Card ─── -->
+    <div class="card" style="animation: fadeUp 0.5s ease both;">
+        <div class="card-title">ข้อมูลรถ &amp; การตั้งค่า</div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label>น้ำหนักรวม <span class="label-en">/ Total Weight (kg)</span></label>
+                <input type="number" id="weight" value="1628" min="500" max="3000">
+            </div>
+
+            <div class="form-group">
+                <label>น้ำหนักตกหน้า <span class="label-en">/ Front Weight (%)</span></label>
+                <input type="number" id="frontWeight" value="48" min="30" max="70">
+            </div>
+
+            <div class="form-group">
+                <label>แรงกดอากาศ <span class="label-en">/ Total Downforce (kgf)</span></label>
+                <input type="number" id="downforce" value="100" min="0">
+            </div>
+
+            <div class="form-group">
+                <label>Min Bump <span class="label-en">(ตาม Car Type จาก forza.guide)</span></label>
+                <input type="number" step="0.1" id="minBump" value="4.4" min="1" max="15">
+                <small style="color:var(--text-muted);font-size:11px;line-height:1.4;">Auto ตามตาราง: Street/Sports/Race 4.4–5.0 • Utility/Race Truck 5.0–5.2 • Rally/Off-road 1.0</small>
+            </div>
+
+            <div class="form-group">
+                <label>ชนิดยาง <span class="label-en">/ Tire Compound</span></label>
+                <div class="select-wrap">
+                    <select id="compound">
+                        <option value="Slick">🏁 Slick — ยางสลิคสนาม</option>
+                        <option value="SemiSlick">🟡 Semi-Slick — ยางกึ่งสลิค</option>
+                        <option value="Stock">⚪ Stock — ยางสต็อคโรงงาน</option>
+                        <option value="Street">🔵 Street — ยางถนนสมรรถนะสูง</option>
+                        <option value="Rally">🟠 Rally — ยางแรลลี่ / ทางกรวด</option>
+                        <option value="OffRoad">🟤 Off-Road — ลุยฝุ่น / โคลน</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>ระบบขับเคลื่อน <span class="label-en">/ Drivetrain</span></label>
+                <div class="select-wrap">
+                    <select id="drivetrain">
+                        <option value="RWD">🔴 RWD — ขับเคลื่อนล้อหลัง</option>
+                        <option value="AWD">🟢 AWD — ขับเคลื่อนสี่ล้อ</option>
+                        <option value="FWD">🔵 FWD — ขับเคลื่อนล้อหน้า</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group full">
+                <label>สไตล์การเบรก <span class="label-en">/ Braking Style</span></label>
+                <div class="select-wrap">
+                    <select id="brakeStyle">
+                        <option value="straight">📏 เบรกจบในทางตรง — เน้นความนิ่ง / มือใหม่ / สนามความเร็วสูง</option>
+                        <option value="trail">🌀 Trail-Braking — เลียเบรกมุดเข้าโค้ง (เน้นหน้ารถมุดไว / มือโปร)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-calculate" id="calcBtn" onclick="calculateTune()">
+            <span class="btn-icon">⚡</span>คำนวณเซ็ตอัพทั้งหมด
+        </button>
+    </div>
+
+    <!-- ─── Results ─── -->
+    <div id="results">
+        <div class="results-header">
+            <h2>▶ ผลการคำนวณ</h2>
+            <p>Based on Forza.guide Standards</p>
+        </div>
+
+        <!-- 1. Dampers -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">1</div>
+                <div class="result-title">ช่วงล่าง <span class="result-title-en">Dampers</span></div>
+            </div>
+            <div class="result-body">
+                <div class="damper-grid">
+                    <div class="damper-card">
+                        <div class="damper-label">Front Bump</div>
+                        <div class="damper-value" id="outFB">—</div>
+                        <div class="damper-type">หน้า / กระแทก</div>
+                    </div>
+                    <div class="damper-card">
+                        <div class="damper-label">Front Rebound</div>
+                        <div class="damper-value" id="outFR">—</div>
+                        <div class="damper-type">หน้า / คืนตัว</div>
+                    </div>
+                    <div class="damper-card">
+                        <div class="damper-label">Rear Bump</div>
+                        <div class="damper-value" id="outRB">—</div>
+                        <div class="damper-type">หลัง / กระแทก</div>
+                    </div>
+                    <div class="damper-card">
+                        <div class="damper-label">Rear Rebound</div>
+                        <div class="damper-value" id="outRR">—</div>
+                        <div class="damper-type">หลัง / คืนตัว</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Tire Pressure -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">2</div>
+                <div class="result-title">ลมยาง <span class="result-title-en">Tire Pressure</span></div>
+            </div>
+            <div class="result-body">
+                <div id="outTire"></div>
+            </div>
+        </div>
+
+        <!-- 3. Alignment -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">3</div>
+                <div class="result-title">ศูนย์ล้อ <span class="result-title-en">Alignment</span></div>
+            </div>
+            <div class="result-body">
+                <div class="result-row">
+                    <span class="result-label">Camber หน้า</span>
+                    <span class="result-value" id="outCamberFront">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Camber หลัง</span>
+                    <span class="result-value" id="outCamberRear">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Toe</span>
+                    <span class="result-value" style="font-size:14px;" id="outToe">—</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Caster</span>
+                    <span class="result-value" id="outCaster" style="font-size:14px;">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ARBs -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">4</div>
+                <div class="result-title">เหล็กกันโคลง <span class="result-title-en">ARBs</span></div>
+            </div>
+            <div class="result-body">
+                <div class="result-item" id="outARB"></div>
+            </div>
+        </div>
+
+        <!-- 5. Springs -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">5</div>
+                <div class="result-title">ความแข็งสปริง <span class="result-title-en">Springs</span></div>
+            </div>
+            <div class="result-body">
+                <div class="result-item" id="outSprings"></div>
+            </div>
+        </div>
+
+        <!-- 6. Ride Height -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">6</div>
+                <div class="result-title">ความสูงรถ <span class="result-title-en">Ride Height</span></div>
+            </div>
+            <div class="result-body">
+                <div class="result-item" id="outRideHeight"></div>
+            </div>
+        </div>
+
+        <!-- 7. Aero -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">7</div>
+                <div class="result-title">แรงกดอากาศ <span class="result-title-en">Aero / Downforce</span></div>
+            </div>
+            <div class="result-body">
+                <div class="result-item" id="outAero"></div>
+            </div>
+        </div>
+
+        <!-- 8. Brakes -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">8</div>
+                <div class="result-title">เบรก <span class="result-title-en">Brakes</span></div>
+            </div>
+            <div class="result-body">
+                <div class="result-item" id="outBrakes"></div>
+            </div>
+        </div>
+
+        <!-- 9. Differential -->
+        <div class="result-section">
+            <div class="result-header">
+                <div class="result-num">9</div>
+                <div class="result-title">เฟืองท้าย <span class="result-title-en">Differential</span></div>
+            </div>
+            <div class="result-body">
+                <div class="result-item" id="outDiff"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function makeNote(text) {
+        return `<div class="note">${text}</div>`;
+    }
+
+    // Profiles แยก Stock / Street / Rally ตาม forza.guide + ค่าตีความเพิ่มที่ผ่านการตรวจผลกระทบแล้ว
+    // Min Bump อ้างอิงตาราง Car Type จาก forza.guide:
+    // Street / Sports / Race = 4.4–5.0, Utility / Race Truck = 5.0–5.2, Rally / Off-road = 1.0
+    const compoundProfiles = {
+        Slick: {
+            label: 'Slick',
+            tireRange: '1.9 – 2.2 bar',
+            inputMinBump: 5.0,
+            guideMinBump: 5.0,
+            camberFront: '0° ถึง -1.0° (หน้าเป็นลบมากกว่าหลังเล็กน้อย)',
+            camberRear: '0° ถึง -1.0°',
+            springRange: '40% – 50% ของ slider',
+            rideHeight: 'เริ่มต่ำสุด หน้า/หลังเท่ากัน และยกขึ้นเมื่อ bottom out',
+            arbMode: 'roadMax',
+            note: 'ตีความเพิ่ม: ยาง grip สูงขึ้นจึงอยู่ฝั่ง firm ของช่วง ⅓–½ ได้ แต่ยังไม่ควรเกินหลัก ⅓–½ ของ forza.guide'
+        },
+        SemiSlick: {
+            label: 'Semi-Slick',
+            tireRange: '1.9 – 2.0 bar',
+            inputMinBump: 4.7,
+            guideMinBump: 4.7,
+            camberFront: '0° ถึง -1.0° (หน้าเป็นลบมากกว่าหลังเล็กน้อย)',
+            camberRear: '0° ถึง -1.0°',
+            springRange: '38% – 50% ของ slider',
+            rideHeight: 'เริ่มต่ำสุด หน้า/หลังเท่ากัน และยกขึ้นเมื่อ bottom out',
+            arbMode: 'roadMax',
+            note: 'ตีความเพิ่ม: อยู่กลาง-บนของช่วง ⅓–½ เพื่อให้คมขึ้นตาม grip ที่มากกว่า Stock/Street'
+        },
+        Stock: {
+            label: 'Stock',
+            tireRange: '1.7 – 1.8 bar',
+            inputMinBump: 4.4,
+            guideMinBump: 4.4,
+            camberFront: '0° ถึง -1.0° (หน้าเป็นลบมากกว่าหลังเล็กน้อย)',
+            camberRear: '0° ถึง -1.0°',
+            springRange: '33% – 40% ของ slider',
+            rideHeight: 'เริ่มต่ำสุด หน้า/หลังเท่ากัน และยกขึ้นเมื่อ bottom out / ทางขรุขระ',
+            arbMode: 'roadMaxSoftened',
+            note: 'ตีความเพิ่ม: ยางเกรดต่ำกว่าใช้ช่วงล่างนุ่มกว่า Street ได้ โดยยังอยู่ในกรอบ ⅓–½ ของ forza.guide'
+        },
+        Street: {
+            label: 'Street',
+            tireRange: '1.7 – 1.8 bar',
+            inputMinBump: 4.4,
+            guideMinBump: 4.4,
+            camberFront: '0° ถึง -1.0° (หน้าเป็นลบมากกว่าหลังเล็กน้อย)',
+            camberRear: '0° ถึง -1.0°',
+            springRange: '35% – 50% ของ slider',
+            rideHeight: 'เริ่มต่ำสุด หน้า/หลังเท่ากัน และยกขึ้นเมื่อ bottom out',
+            arbMode: 'roadMax',
+            note: 'Tarmac baseline ตาม forza.guide: ARB เริ่มใกล้ Max, springs อยู่ราว ⅓–½, ride height เริ่ม minimum'
+        },
+        Rally: {
+            label: 'Rally',
+            tireRange: '1.7 – 1.8 bar',
+            inputMinBump: 1.0,
+            guideMinBump: 1.0,
+            camberFront: '0° ถึง -1.0° (เริ่มน้อยไว้ก่อน แล้วเพิ่ม -0.3° หากขาด grip)',
+            camberRear: '0° ถึง -1.0°',
+            springRange: 'ใกล้ soft end ของ slider',
+            rideHeight: 'สูงสุด / Max Ride Height',
+            arbMode: 'rallySoft',
+            note: 'Rally exception ตาม forza.guide: นุ่ม สูง และ ARB ใกล้ minimum เพื่อให้ล้อตามพื้นไม่เรียบ'
+        },
+        OffRoad: {
+            label: 'Off-Road',
+            tireRange: '1.1 – 1.4 bar',
+            inputMinBump: 1.0,
+            guideMinBump: 1.0,
+            camberFront: '0° ถึง -1.0° (buggy/race truck อาจใช้ caster ต่ำกว่าแทน)',
+            camberRear: '0° ถึง -1.0°',
+            springRange: 'ใกล้ soft end ของ slider',
+            rideHeight: 'สูงสุดหรือใกล้สูงสุด',
+            arbMode: 'rallySoft',
+            note: 'Off-road ต้องการ compliance สูงสุด และหลีกเลี่ยง bottom out ตาม forza.guide'
+        }
+    };
+
+    function getProfile(compound) {
+        return compoundProfiles[compound] || compoundProfiles.Street;
+    }
+
+    function syncMinBump() {
+        // Auto-fill ค่า Min Bump ที่ถูกต้องตาม Car Type / Surface เมื่อเปลี่ยนชนิดยาง
+        // ผู้ใช้ยังแก้มือได้ แต่ Road tune จะไม่ยอมต่ำกว่าค่าขั้นต่ำตาม forza.guide
+        const compound = document.getElementById('compound').value;
+        const profile = getProfile(compound);
+        document.getElementById('minBump').value = profile.inputMinBump.toFixed(1);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        syncMinBump();
+        document.getElementById('compound').addEventListener('change', syncMinBump);
+    });
+
+    function calculateTune() {
+        const btn = document.getElementById('calcBtn');
+        btn.style.opacity = '0.7';
+        btn.textContent = '⏳ กำลังคำนวณ...';
+
+        setTimeout(() => {
+            btn.style.opacity = '1';
+            btn.innerHTML = '<span class="btn-icon">✅</span>คำนวณแล้ว — คลิกอีกครั้งเพื่อรีเซ็ต';
+        }, 400);
+
+        let w          = parseFloat(document.getElementById('weight').value);
+        let fwPercent  = parseFloat(document.getElementById('frontWeight').value);
+        let rwPercent  = 100 - fwPercent;
+        let df         = parseFloat(document.getElementById('downforce').value);
+        let compound   = document.getElementById('compound').value;
+        let profile    = getProfile(compound);
+        let mbInput    = parseFloat(document.getElementById('minBump').value);
+        let mb         = Number.isFinite(mbInput) ? mbInput : profile.inputMinBump;
+        let dt         = document.getElementById('drivetrain').value;
+        let brakeStyle = document.getElementById('brakeStyle').value;
+
+
+        // 1. Dampers
+        // forza.guide ใช้สูตร: Front bump = Min Bump + (Front Weight / 200 lb) × 0.1, rebound = bump ÷ 0.4
+        // ไฟล์นี้รับ kg จึงใช้ 90.7 kg ≈ 200 lb
+        let frontWeightKg = (w * (fwPercent / 100)) + (df * 0.42);
+        let rearWeightKg  = (w * (rwPercent / 100)) + (df * 0.58);
+        let effectiveMinBump = profile.arbMode === 'rallySoft' ? Math.max(1.0, mb) : Math.max(profile.guideMinBump, mb);
+        document.getElementById('minBump').value = effectiveMinBump.toFixed(1);
+
+        let fBump = effectiveMinBump + (frontWeightKg / 90.7) * 0.1;
+
+        if (profile.arbMode === 'rallySoft') {
+            // forza.guide exception: Rally/Off-road bump stays fully soft at 1.0.
+            // Do not use bump÷0.4 math here; derive rebound from feel, firm and slightly front-biased.
+            document.getElementById('outFB').innerText = '1.0';
+            document.getElementById('outRB').innerText = '1.0';
+            document.getElementById('outFR').innerText = 'firm feel / หน้าแข็งกว่าหลังเล็กน้อย';
+            document.getElementById('outRR').innerText = 'firm feel / ปรับจากความรู้สึก';
+        } else {
+            // forza.guide: Front rebound = Front bump ÷ 0.4.
+            // Rear dampers start from the front values, then nudge toward the stiffer spring end.
+            let fRebound = fBump / 0.4;
+            let springBiasStep = 0;
+            if (fwPercent >= 53) springBiasStep = -0.2;      // front springs stiffer → rear slightly below front
+            else if (fwPercent <= 47) springBiasStep = 0.2;  // rear springs stiffer → rear slightly above front
+
+            let rBump = Math.max(profile.guideMinBump, fBump + springBiasStep);
+            let rRebound = Math.max(0, fRebound + (springBiasStep / 0.4));
+
+            document.getElementById('outFB').innerText = fBump.toFixed(1);
+            document.getElementById('outFR').innerText = fRebound.toFixed(1);
+            document.getElementById('outRB').innerText = rBump.toFixed(1);
+            document.getElementById('outRR').innerText = rRebound.toFixed(1);
+        }
+
+        // 2. Tires
+        let tireNote = '';
+        if (w > 1500 && profile.arbMode !== 'rallySoft') tireNote = 'รถหนัก: ใช้ขอบบนของช่วงลมยางได้ เพราะ forza.guide ระบุว่ารถหนักอาจต้องใช้แรงดันสูงกว่าช่วงฐาน';
+        if (profile.arbMode === 'rallySoft') tireNote = 'หมายเหตุ: Rally ใช้ลมยางช่วงเดียวกับ Stock/Street ตาม forza.guide แต่ช่วงล่างต้องเป็น logic off-road/rally';
+        if (profile.arbMode !== 'rallySoft' && mb < profile.guideMinBump) {
+            tireNote += (tireNote ? '<br>' : '') + `Min Bump ที่กรอก (${mb.toFixed(1)}) ต่ำกว่าค่าขั้นต่ำ Road baseline ของ forza.guide จึงปรับเป็น ${profile.guideMinBump.toFixed(1)} อัตโนมัติ`;
+        }
+
+        document.getElementById('outTire').innerHTML = `
+            <div class="tire-display">
+                <div>
+                    <div class="tire-unit" style="text-align:center;margin-bottom:4px;">${profile.label} Recommended</div>
+                    <div class="tire-num">${profile.tireRange}</div>
+                </div>
+            </div>
+            ${tireNote ? makeNote(tireNote) : ''}
+        `;
+
+        // 3. Alignment
+        document.getElementById('outCamberFront').innerText = profile.camberFront;
+        document.getElementById('outCamberRear').innerText = profile.camberRear;
+
+        let toeHtml = '';
+        if      (dt === 'RWD') toeHtml = 'หน้า <strong>0.0°</strong> | หลัง <strong>-0.1° ถึง -0.2° Toe-in</strong> ถ้ารถ snap loose';
+        else if (dt === 'AWD') toeHtml = 'หน้า <strong>0.0°</strong> | หลัง <strong>0.0° ถึง -0.1° Toe-in</strong>';
+        else if (dt === 'FWD') toeHtml = 'หน้า <strong>0.0°</strong> (ถ้าเลี้ยวไม่เข้า: +0.1° Toe-out) | หลัง <strong>0.0°</strong>';
+
+        document.getElementById('outToe').innerHTML = toeHtml;
+        document.getElementById('outCaster').innerText =
+            profile.arbMode === 'rallySoft'
+                ? '6.5° – 7.0° เป็นหลัก | buggy/race truck off-road ใช้ได้ต่ำราว 2.0°'
+                : '6.5° – 7.0°';
+
+        // 4. ARBs
+        let arbText = '';
+        let arbNote = '';
+        if (profile.arbMode === 'rallySoft') {
+            arbText = '📌 <strong>Rally / Off-road:</strong> ตั้ง ARB หน้าและหลัง<strong>นุ่ม ใกล้ Minimum</strong> เพื่อให้ล้อซ้าย-ขวาทำงานอิสระและเกาะพื้นไม่เรียบ';
+            arbNote = 'อย่าเริ่มจาก Max แบบรถถนน ให้จูน balance ด้วย differential และ dampers แทน';
+        } else if (profile.arbMode === 'roadMaxSoftened') {
+            arbText = '📌 <strong>Stock:</strong> ยังเป็น Road/Tarmac baseline ให้เริ่มจาก ARB ใกล้ Max แล้ว soften ลงมากกว่า Street/Slick ถ้ารถ skitters หรือ grip ต่ำ';
+            arbNote = 'ใช้หลักเดียวกับ forza.guide: เริ่มใกล้ Max สำหรับ tarmac แต่ค่า lower-grade tire ควร soften เพื่อรักษา contact patch';
+        } else {
+            if      (dt === 'RWD') arbText = '📌 <strong>Street/Tarmac:</strong> ตั้งหน้าใกล้ Max แล้วตั้งหลังอ่อนกว่าหน้า เพื่อกันท้ายปัด';
+            else if (dt === 'AWD') arbText = '📌 <strong>Street/Tarmac:</strong> ตั้งใกล้ Max ทั้งหน้าและหลัง แล้ว soften จนเข้าหน้าต่าง balance';
+            else if (dt === 'FWD') arbText = '📌 <strong>Street/Tarmac:</strong> ตั้งหลังแข็งกว่าหน้าเล็กน้อยเพื่อช่วย rotation';
+            arbNote = 'เล็ง Mechanical Balance 0.55 – 0.65 โดย sweet spot ประมาณ 0.60';
+        }
+        document.getElementById('outARB').innerHTML = `
+            <div class="result-item">${arbText}</div>
+            ${makeNote(arbNote)}
+        `;
+
+        // 5. Springs
+        let springHtml = `<div class="result-item"><strong>${profile.label} Springs:</strong> ตั้งช่วงประมาณ <strong>${profile.springRange}</strong> ของ slider</div>`;
+        if (profile.arbMode !== 'rallySoft') {
+            if (fwPercent > 50)      springHtml += `<div class="result-item">น้ำหนักหน้า ${fwPercent}% → ตั้ง<strong>หน้าแข็งกว่าหลังเล็กน้อย</strong></div>`;
+            else if (fwPercent < 50) springHtml += `<div class="result-item">น้ำหนักหลัง ${rwPercent}% → ตั้ง<strong>หลังแข็งกว่าหน้าเล็กน้อย</strong></div>`;
+            else                     springHtml += `<div class="result-item">น้ำหนักใกล้ 50/50 → ตั้งหน้าและหลังใกล้เคียงกัน</div>`;
+        } else {
+            springHtml += `<div class="result-item">เน้น compliance สูงสุด ให้ยางตามพื้นดิน/กรวด/โคลน และจูน balance ด้วย diff + dampers</div>`;
+        }
+        springHtml += makeNote(profile.note);
+        document.getElementById('outSprings').innerHTML = springHtml;
+
+        // 6. Ride Height
+        let rideHeightNote = '';
+        if (profile.arbMode === 'rallySoft') {
+            rideHeightNote = 'Rally/Off-road ให้เริ่มที่สูงสุดหรือใกล้สูงสุด โดยเฉพาะ Rally suspension ที่ forza.guide ระบุว่า maxed out แล้วเป็นจุดที่ควรใช้ เพราะต้องการ suspension travel สำหรับพื้นไม่เรียบและ jump';
+        } else if (profile.arbMode === 'roadMaxSoftened') {
+            rideHeightNote = 'Stock เริ่มต่ำได้ แต่ไม่ควรเตี้ยจนช่วงล่างยุบสุด เพราะยาง grip ต่ำกว่าต้องพึ่ง contact patch มากขึ้น';
+        } else {
+            rideHeightNote = 'รถถนน/สนามให้เริ่มต่ำเพื่อจุดศูนย์ถ่วงต่ำ แต่ถ้า bottom out หรือเสีย grip บน curb ให้ยกขึ้นทีละน้อย';
+        }
+        document.getElementById('outRideHeight').innerHTML = `
+            <div class="result-row">
+                <span class="result-label">${profile.label} Ride Height</span>
+                <span class="result-value" style="font-size:14px;">${profile.rideHeight}</span>
+            </div>
+            ${makeNote(rideHeightNote)}
+        `;
+
+        // 7. Aero
+        let aeroHtml = `
+            <div class="result-item">1. รักษาสมดุล <strong>Aero Balance ที่ 0.40 – 0.45</strong> เสมอ</div>
+            <div class="result-item">2. รถ circuit/time attack มักใช้ downforce ใกล้ Max; sprint/ความเร็วสูงใช้ต่ำกว่า</div>
+        `;
+        if (dt === 'RWD') aeroHtml += `<div class="result-item">3. <strong>RWD:</strong> เอน balance ไปทางหลังเล็กน้อยเพื่อลดท้ายสะบัด</div>`;
+        else              aeroHtml += `<div class="result-item">3. <strong>FWD/AWD:</strong> เอน balance ไปทางหน้าเล็กน้อยเพื่อลดหน้าดื้อ</div>`;
+        document.getElementById('outAero').innerHTML = aeroHtml;
+
+        // 8. Brakes
+        let brakeHtml = '';
+        if (brakeStyle === 'straight') {
+            if (compound === 'Rally') {
+                brakeHtml += `<div class="result-row"><span class="result-label">Brake Bias</span><span class="result-value red">48% F</span></div>`;
+                brakeHtml += `<div class="result-row"><span class="result-label">Brake Pressure</span><span class="result-value red">125%</span></div>`;
+                brakeHtml += makeNote('Rally ใช้ starting value ตามตาราง Philosophy A ใน forza.guide');
+            } else if (compound === 'OffRoad') {
+                brakeHtml += `<div class="result-row"><span class="result-label">Brake Bias</span><span class="result-value red">46–52% F</span></div>`;
+                brakeHtml += `<div class="result-row"><span class="result-label">Brake Pressure</span><span class="result-value red">110–135%</span></div>`;
+                brakeHtml += makeNote('Off-road ใน forza.guide แยกตาม buggy/car/truck จึงแสดงเป็นช่วงแทนการเดา subtype');
+            } else {
+                brakeHtml += `
+                    <div class="result-row"><span class="result-label">Brake Bias</span><span class="result-value red">52–56% F</span></div>
+                    <div class="result-row"><span class="result-label">Brake Pressure</span><span class="result-value red">100%</span></div>
+                    ${makeNote('แนวทางหลักใน forza.guide: ถ้าเบรกจบก่อน turn-in ใช้ 52–56% forward และ pressure ปล่อย 100% เว้นแต่มีอาการ lockup/หยุดไม่อยู่')}
+                `;
+            }
+        } else {
+            let bias = fwPercent >= 50
+                ? '47% F / 53% R — <span style="color:var(--text-muted);font-size:13px;">ใกล้ 53% rear bias สำหรับ front-engine'
+                : '46% F / 54% R — <span style="color:var(--text-muted);font-size:13px;">ใกล้ 54% rear bias สำหรับ mid/rear-engine';
+            brakeHtml += `<div class="result-row"><span class="result-label">Brake Bias</span><span class="result-value red" style="font-size:14px;">${bias}</span></span></div>`;
+            brakeHtml += `<div class="result-row"><span class="result-label">Brake Pressure</span><span class="result-value red">100%</span></div>`;
+        }
+        brakeHtml += makeNote('ถ้าล็อคง่ายเกินไป ลด pressure ทีละ 5–10% | ถ้าเบรกไม่อยู่ เพิ่มทีละ 5–10%');
+        document.getElementById('outBrakes').innerHTML = brakeHtml;
+
+        // 9. Differential
+        let diffHtml = makeNote('กฎการปรับ: ปรับได้ทีละ 2% (ใช้เลขคู่เสมอ)');
+        if (dt === 'RWD') {
+            diffHtml += `
+                <div class="result-row"><span class="result-label">Acceleration</span><span class="result-value">56%</span></div>
+                <div class="result-row"><span class="result-label">Deceleration</span><span class="result-value">16%</span></div>
+                ${makeNote('RWD baseline: accel 50–70%, decel 10–20%')}
+            `;
+        } else if (dt === 'FWD') {
+            diffHtml += `
+                <div class="result-row"><span class="result-label">Acceleration</span><span class="result-value">86%</span></div>
+                <div class="result-row"><span class="result-label">Deceleration</span><span class="result-value">6%</span></div>
+                ${makeNote('FWD baseline: accel 80–95%, decel 0–10%')}
+            `;
+        } else if (dt === 'AWD') {
+            let frontDiff = profile.arbMode === 'rallySoft' ? '86% / 0–6%' : '86% / 6%';
+            let rearAccel = profile.arbMode === 'rallySoft' ? '70–90%' : '56%';
+            let rearDecel = profile.arbMode === 'rallySoft' ? '0–6%' : '16%';
+            let centerBias = profile.arbMode === 'rallySoft' ? '50–70%' : '70–80%';
+            diffHtml += `
+                <div class="result-row"><span class="result-label">Front: Accel / Decel</span><span class="result-value" style="font-size:16px;">${frontDiff}</span></div>
+                <div class="result-row"><span class="result-label">Rear: Accel / Decel</span><span class="result-value" style="font-size:16px;">${rearAccel} / ${rearDecel}</span></div>
+                <div class="result-row"><span class="result-label">Center Split Rear Bias</span><span class="result-value">${centerBias}</span></div>
+                ${makeNote(profile.arbMode === 'rallySoft' ? 'Rally/Off-road AWD: rear accel สูงขึ้นได้, decel หน้า/หลังต่ำ และ center split 50–70% rear bias ตาม forza.guide' : 'Road racing AWD ใช้ rear bias 70–80% ตาม forza.guide')}
+            `;
+        }
+        document.getElementById('outDiff').innerHTML = diffHtml;
+
+        // Show results
+        const results = document.getElementById('results');
+        results.style.display = 'block';
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+</script>
+
+</body>
+</html>
